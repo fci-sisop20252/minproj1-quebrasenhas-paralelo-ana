@@ -82,16 +82,19 @@ int main(int argc, char *argv[]) {
     // - password_len deve estar entre 1 e 10
     if (password_len <1 || password_len > 10){
         printf("Erro: senha deve ter tamanho entre 1 e 10\n");
+        return 1;
     }
 
     // - num_workers deve estar entre 1 e MAX_WORKERS
     if (num_workers < 1 || num_workers > MAX_WORKERS){
         printf("Erro: número de workers deve estar entre 1 e %d\n", MAX_WORKERS);
+        return 1;
     }
 
     // - charset não pode ser vazio
     if (charset_len <= 0){
         printf("Erro: número de caracteres deve ser maior que 0\n");
+        return 1;
     }
     
     printf("=== Mini-Projeto 1: Quebra de Senhas Paralelo ===\n");
@@ -125,12 +128,15 @@ int main(int argc, char *argv[]) {
     // IMPLEMENTE AQUI: Loop para criar workers
     for (int i = 0; i < num_workers; i++) {
         // TODO: Calcular intervalo de senhas para este worker
-        
+        long long primeiro_num = i * (total_space / num_workers);
+        long long ultimo_num   = (i == num_workers - 1) ? total_space - 1 : (primeiro_num + (total_space / num_workers) - 1);
 
         // TODO: Converter indices para senhas de inicio e fim
-        
+        char primeira_senha[11], ultima_senha[11];
+        index_to_password(primeiro_num, charset, charset_len, password_len, primeira_senha);
+        index_to_password(ultimo_num,   charset, charset_len, password_len, ultima_senha);
 
-        // TODO 4: Usar fork() para criar processo filho
+        // TODO 4: Usar fork() para criar processo pid
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -138,12 +144,25 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
+        
+        // TODO 6: No processo pid: usar execl() para executar worker
+        if (pid == 0) {
+            char id_worker[10], tam_senha[10];
+            sprintf(id_worker, "%d", i);
+            sprintf(tam_senha, "%d", password_len);
+            
+            execl("./worker", "worker", target_hash, primeira_senha, ultima_senha, charset, tam_senha, id_worker, (char *)NULL);
+            
+            // TODO 7: Tratar erros de fork() e execl()
+            perror("Erro no execl");
+            exit(1);
+        }
         // TODO 5: No processo pai: armazenar PID
-
-        // TODO 6: No processo filho: usar execl() para executar worker
-
-        // TODO 7: Tratar erros de fork() e execl()
+        else {
+            workers [i] = pid;
+        }
     }
+
     
     printf("\nTodos os workers foram iniciados. Aguardando conclusão...\n");
     
@@ -156,15 +175,15 @@ int main(int argc, char *argv[]) {
     while (workersTerminados < num_workers){
         int status;
         // - Usar wait() para capturar status de saída
-        pid_t filho = wait(&status);
+        pid_t pid = wait(&status);
 
         // - Identificar qual worker terminou
         if (status == 0) {
-            printf("Worker (PID %d) terminou normalmente.\n", filho);
+            printf("Worker (PID %d) terminou normalmente.\n", pid);
         }
         // - Verificar se terminou normalmente ou com erro
         else{
-            printf("Worker (PID %d) terminou com erro.\n", filho);
+            printf("Worker (PID %d) terminou com erro.\n", pid);
         }
 
         // - Contar quantos workers terminaram
@@ -212,4 +231,3 @@ int main(int argc, char *argv[]) {
     // TODO: Calcular e exibir estatísticas de performance
     
     return 0;
-}
