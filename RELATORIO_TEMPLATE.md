@@ -8,11 +8,12 @@
 
 **Como você dividiu o espaço de busca entre os workers?**
 
-[Explique seu algoritmo de divisão]
+Para dividir o trabalho de busca e separação da senha entre os workers, foi necessário apenas fazer a divisão do total de combinações possíveis para cada worker. Como o total de senhas pode não ser múltiplo exato do número de workers, o resto da divisão é distribuído entre os primeiros workers, garantindo que nenhuma senha fique de fora.
 
 **Código relevante:** Cole aqui a parte do coordinator.c onde você calcula a divisão:
 ```c
-// Cole seu código de divisão aqui
+    long long passwords_per_worker = total_space/ num_workers;
+    long long remaining = total_space % num_workers;
 ```
 
 ---
