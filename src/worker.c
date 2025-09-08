@@ -97,7 +97,6 @@ void save_result(int worker_id, const char *password) {
     // FORMATO DO ARQUIVO: "worker_id:password\n"
     
     // IMPLEMENTE AQUI:
-    void save_result(int worker_id, const char *password) {
         int fd = open(RESULT_FILE, O_CREAT | O_EXCL | O_WRONLY, 0644);
         if (fd >= 0) {
             char buffer[256];
@@ -106,7 +105,7 @@ void save_result(int worker_id, const char *password) {
             close(fd);
             printf("[Worker %d] Resultado salvo!\n", worker_id);
         }
-    }
+
     // - Tentar abrir arquivo com O_CREAT | O_EXCL | O_WRONLY
     // - Se sucesso: escrever resultado e fechar
     // - Se falhou: outro worker já encontrou
@@ -143,12 +142,25 @@ int main(int argc, char *argv[]) {
     // Contadores para estatísticas
     long long passwords_checked = 0;
     time_t start_time = time(NULL);
-    time_t last_progress_time = start_time;
+    //time_t last_progress_time = start_time;
     
     // Loop principal de verificação
     while (1) {
         // TODO 3: Verificar periodicamente se outro worker já encontrou a senha
         // DICA: A cada PROGRESS_INTERVAL senhas, verificar se arquivo resultado existe
+        if (passwords_checked % PROGRESS_INTERVAL == 0) {
+            if (check_result_exists()) {
+                printf("[Worker %d] Resultado já encontrado.\n", worker_id);
+                break;
+            }
+        }
+        if (passwords_checked % PROGRESS_INTERVAL == 0) {
+            if (check_result_exists()) {
+                printf("[Worker %d] Resultado já encontrado.\n", worker_id);
+                exit(0); 
+        }
+    }
+
         
         // TODO 4: Calcular o hash MD5 da senha atual
         // IMPORTANTE: Use a biblioteca MD5 FORNECIDA - md5_string(senha, hash_buffer)
@@ -164,9 +176,15 @@ int main(int argc, char *argv[]) {
         
         // TODO 6: Incrementar para a próxima senha
         // DICA: Use a função increment_password implementada acima
+        if (!increment_password(current_password, charset, charset_len, password_len)) {
+            break; 
+        }
         
         // TODO: Verificar se chegou ao fim do intervalo
-        // Se sim: terminar loop
+        if (password_compare(current_password, end_password) > 0) {
+            break;
+        }
+        
         
         passwords_checked++;
     }

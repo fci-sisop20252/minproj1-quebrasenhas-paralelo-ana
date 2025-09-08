@@ -49,8 +49,7 @@ long long calculate_search_space(int charset_len, int password_len) {
  * @param password_len Comprimento da senha
  * @param output Buffer para armazenar a senha gerada
  */
-void index_to_password(long long index, const char *charset, int charset_len, 
-                       int password_len, char *output) {
+void index_to_password(long long index, const char *charset, int charset_len, int password_len, char *output) {
     for (int i = password_len - 1; i >= 0; i--) {
         output[i] = charset[index % charset_len];
         index /= charset_len;
@@ -116,8 +115,8 @@ int main(int argc, char *argv[]) {
     // TODO 2: Dividir o espaço de busca entre os workers
     // Calcular quantas senhas cada worker deve verificar
     // DICA: Use divisão inteira e distribua o resto entre os primeiros workers
-    long long passwords_per_worker = total_space/ num_workers;
-    long long remaining = total_space % num_workers;
+    //long long passwords_per_worker = total_space/ num_workers;
+    //long long remaining = total_space % num_workers;
     
     // Arrays para armazenar PIDs dos workers
     pid_t workers[MAX_WORKERS];
@@ -171,23 +170,18 @@ int main(int argc, char *argv[]) {
     
     // IMPLEMENTE AQUI:
     // - Loop para aguardar cada worker terminar
-    int workersTerminados = 0; 
-    while (workersTerminados < num_workers){
+    for (int i = 0; i < num_workers; i++) {
         int status;
-        // - Usar wait() para capturar status de saída
-        pid_t pid = wait(&status);
+        pid_t terminated_pid = waitpid(workers[i], &status, 0);
 
         // - Identificar qual worker terminou
-        if (status == 0) {
-            printf("Worker (PID %d) terminou normalmente.\n", pid);
+        if (terminated_pid > 0) {
+            if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                printf("Worker (PID %d) terminou normalmente.\n", terminated_pid);
+            } else {
+                printf("Worker (PID %d) terminou com erro.\n", terminated_pid);
+            }
         }
-        // - Verificar se terminou normalmente ou com erro
-        else{
-            printf("Worker (PID %d) terminou com erro.\n", pid);
-        }
-
-        // - Contar quantos workers terminaram
-        workersTerminados++;
     }
     
     // Registrar tempo de fim
@@ -204,22 +198,22 @@ int main(int argc, char *argv[]) {
 
     // - Ler conteúdo do arquivo
     if (fp) {
-    char line[256];
-    if (fgets(line, sizeof(line), fp) != NULL) {
-        // - Fazer parse do formato "worker_id:password"
-        char *separador = strchr(line, ':');
-        if (separador) {
-            *separador = '\0';
-            const char *id_str = line;
-            char *pwd = separador + 1;
+        char line[256];
+        if (fgets(line, sizeof(line), fp) != NULL) {
+            // - Fazer parse do formato "worker_id:password"
+            char *separador = strchr(line, ':');
+            if (separador) {
+                *separador = '\0';
+                const char *id_str = line;
+                char *pwd = separador + 1;
 
-            char hash_out[33] = {0};
-            // - Verificar o hash usando md5_string()
-            md5_string(pwd, hash_out);
+                char hash_out[33] = {0};
+                // - Verificar o hash usando md5_string()
+                md5_string(pwd, hash_out);
 
-            // - Exibir resultado encontrado
-            printf("Worker %s encontrou senha \"%s\".\n", id_str, pwd);
-            }
+                // - Exibir resultado encontrado
+                printf("Worker %s encontrou senha \"%s\".\n", id_str, pwd);
+                }
     }
     fclose(fp);
     } 
@@ -229,5 +223,13 @@ int main(int argc, char *argv[]) {
     
     // Estatísticas finais (opcional)
     // TODO: Calcular e exibir estatísticas de performance
+    if (elapsed_time > 0) {
+        long long passwords_per_second = total_space / elapsed_time;
+        printf("Tempo total de execução: %.2f segundos\n", elapsed_time);
+        printf("Taxa média de processamento: %lld senhas/segundo\n", passwords_per_second);
+    } else {
+        printf("Tempo total de execução: < 1 segundo\n");
+    }
     
     return 0;
+}    
