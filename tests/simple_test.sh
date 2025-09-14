@@ -170,7 +170,7 @@ run_test "Senha Numérica (123)" \
 
 # Teste 3: Senha no final do espaço
 run_test "Senha no Final (zzz)" \
-    "15de21c670ae7c3f6f3f1f37029303c9" \
+    "f3abb86bd34cf4d52698f14c0da1dc60" \
     "3" \
     "xyz" \
     "3" \
@@ -228,7 +228,7 @@ fi
 echo -n "Verificando processos zumbi: "
 ./coordinator "900150983cd24fb0d6963f7d28e17f72" "3" "abc" "4" >/dev/null 2>&1
 sleep 1
-ZOMBIES=$(ps aux | grep defunct | wc -l)
+ZOMBIES=$(ps aux | grep -v grep | grep defunct | wc -l)
 if [ $ZOMBIES -eq 0 ]; then
     echo -e "${GREEN}✓ Nenhum processo zumbi${NC}"
     TESTS_PASSED=$((TESTS_PASSED + 1))
